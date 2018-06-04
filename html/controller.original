@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Multitouch Player Controller</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+var ongoingTouches = [];
+var html_player_controller = new Object();
+
+html_player_controller.button="STOP";
+
+// Create a client instance
+client = new Paho.MQTT.Client("test.mosquitto.org", Number("8080"), "clientId"+Math.random());
+
+// set callback handlers
+client.onConnectionLost = onConnectionLost;
+client.onMessageArrived = onMessageArrived;
+
+// connect the client
+client.connect({onSuccess:onConnect});
+
+
+// called when the client connects
+function onConnect() {
+  // Once a connection has been made, make a subscription and send a message.
+  //log("onConnect");
+  client.subscribe("html/controller");
+  message = new Paho.MQTT.Message("onConnect");
+  message.destinationName = "html/controller";
+  client.send(message);
+}
+
+// called when the client loses its connection
+function onConnectionLost(responseObject) {
+  if (responseObject.errorCode !== 0) {
+    //log("onConnectionLost:"+responseObject.errorMessage);
+  }
+}
+
+// called when a message arrives
+function onMessageArrived(message) {
+  log(message.payloadString);
+}
+
+function move(player_button){	
+    	html_player_controller.action="MOVE";
+    	html_player_controller.button=player_button;
+        html_player_controller.sesion = "ACTIVA";
+	message = new Paho.MQTT.Message(JSON.stringify(html_player_controller)+"</BR>");
+  	message.destinationName = "html/controller";
+  	client.send(message);
+}
+
+function move_reset(player_button){
+    	html_player_controller.action="RESET";
+    	html_player_controller.button=player_button;	
+        html_player_controller.sesion = "ACTIVA";
+	message = new Paho.MQTT.Message(JSON.stringify(html_player_controller)+"</BR>");
+  	message.destinationName = "html/controller";
+  	client.send(message);
+}
+ 
+function startup() {
+  var el = document.getElementsByTagName("canvas")[0];
+
+  var canvas = document.getElementById('canvas');
+  var context = canvas.getContext('2d');
+
+  var img = new Image();
+  img.onload = function() {
+  context.drawImage(img, 0, 0, 800, 477);
+
+  /*var centerX = 160;
+  var centerY = 90;
+  var radius = 60;
+
+  context.beginPath();
+  context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+  context.fillStyle = 'green';
+  context.fill();
+
+  var centerX = 160;
+  var centerY = 250;
+  var radius = 60;
+
+  context.beginPath();
+  context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+  context.fillStyle = 'blue';
+  context.fill();
+
+  var centerX = 70;
+  var centerY = 170;
+  var radius = 60;
+
+  context.beginPath();
+  context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+  context.fillStyle = 'pink';
+  context.fill();
+
+  var centerX = 250;
+  var centerY = 170;
+  var radius = 60;
+
+  context.beginPath();
+  context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+  context.fillStyle = 'red';
+  context.fill();
+
+  var centerX = 640;
+  var centerY = 90;
+  var radius = 60;
+
+  context.beginPath();
+  context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+  context.fillStyle = 'green';
+  context.fill();
+
+  var centerX = 640;
+  var centerY = 250;
+  var radius = 60;
+
+  context.beginPath();
+  context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+  context.fillStyle = 'blue';
+  context.fill();
+
+  var centerX = 550;
+  var centerY = 170;
+  var radius = 60;
+
+  context.beginPath();
+  context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+  context.fillStyle = 'pink';
+  context.fill();
+
+  var centerX = 730;
+  var centerY = 170;
+  var radius = 60;
+
+  context.beginPath();
+  context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+  context.fillStyle = 'red';
+  context.fill();
+
+  context.stroke();*/
+	}
+
+  img.src = "https://i.blogs.es/102100/sony_playstation_2_controller_by_blueamnesiac-d6vzao2/original.png";
+
+  el.addEventListener("touchstart", handleStart, false);
+  el.addEventListener("touchend", handleEnd, false);
+  el.addEventListener("touchcancel", handleCancel, false);
+//  log("initialized.");      
+}
+
+function handleStart(evt) {
+  evt.preventDefault();
+  var el = document.getElementsByTagName("canvas")[0];
+  var ctx = el.getContext("2d");
+  var touches = evt.changedTouches;
+        
+  for (var i = 0; i < touches.length; i++) {
+    ongoingTouches.push(copyTouch(touches[i]));
+    var idx = ongoingTouchIndexById(touches[i].identifier);
+
+    if (pointInCircle(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY, 640, 90, 60)){
+	ongoingTouches[idx].button="PSB_GREEN";
+	move("PSB_GREEN");
+	} else if (pointInCircle(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY, 640, 250, 60)){
+	ongoingTouches[idx].button="PSB_BLUE";
+	move("PSB_BLUE");
+	Audio_Play();
+	} else if (pointInCircle(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY, 550, 170, 60)){
+	ongoingTouches[idx].button="PSB_PINK";
+	move("PSB_PINK");
+	} else if (pointInCircle(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY, 730, 170, 60)){
+	ongoingTouches[idx].button="PSB_RED";
+	move("PSB_RED");
+	}
+ 
+    if (pointInCircle(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY, 160, 90, 60)){
+	ongoingTouches[idx].button="MOVE_UP";
+	move("MOVE_UP");
+	} else if (pointInCircle(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY, 160, 250, 60)){
+	ongoingTouches[idx].button="MOVE_DOWN";
+	move("MOVE_DOWN");
+	} else if (pointInCircle(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY, 70, 170, 60)){
+	ongoingTouches[idx].button="MOVE_LEFT";
+	move("MOVE_LEFT");
+	} else if (pointInCircle(ongoingTouches[idx].pageX, ongoingTouches[idx].pageY, 250, 170, 60)){
+	ongoingTouches[idx].button="MOVE_RIGHT";
+	move("MOVE_RIGHT");
+	}
+  }
+}
+
+function handleEnd(evt) {
+  evt.preventDefault();
+  var el = document.getElementsByTagName("canvas")[0];
+  var ctx = el.getContext("2d");
+  var touches = evt.changedTouches;
+
+  for (var i = 0; i < touches.length; i++) {    
+    var idx = ongoingTouchIndexById(touches[i].identifier);
+    move_reset(ongoingTouches[idx].button);
+    if (idx >= 0) {      
+      ongoingTouches.splice(idx, 1);
+    } else {
+//      log("can't figure out which touch to end");
+    }
+  }
+}
+
+function handleCancel(evt) {
+  evt.preventDefault();
+  var touches = evt.changedTouches;
+  
+  for (var i = 0; i < touches.length; i++) {
+    ongoingTouches.splice(i, 1); 
+  }
+}
+
+function copyTouch(touch) {
+  return { identifier: touch.identifier, pageX: touch.pageX, pageY: touch.pageY };
+}
+
+function ongoingTouchIndexById(idToFind) {
+  for (var i = 0; i < ongoingTouches.length; i++) {
+    var id = ongoingTouches[i].identifier;
+    
+    if (id == idToFind) {
+      return i;
+    }
+  }
+  return -1;    // not found
+}
+
+// x,y is the point to test
+// cx, cy is circle center, and radius is circle radius
+function pointInCircle(x, y, cx, cy, radius) {
+  var distancesquared = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+  return distancesquared <= radius * radius;
+}
+
+function log(msg) {
+  var p = document.getElementById('log');
+  p.innerHTML = msg + "\n" + p.innerHTML; 
+}
+
+</script>
+</head>
+
+<body onload="startup()">
+<div id="canvas_div">
+<canvas id="canvas" width="800" height="600" style="border:none;">
+  Your browser does not support canvas element.
+</canvas>
+</div>
+
+<div id="log"></div>
+</body>
+</html>

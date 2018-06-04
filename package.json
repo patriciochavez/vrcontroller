@@ -1,0 +1,23 @@
+{
+  "name": "htmlcontroller",
+  "version": "0.0.1",
+  "description": "Demo Managed Cloud HTML Controller",
+  "main": "index.js",
+  "author": " <Patricio Chavez>",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.15.2",
+    "express": "^4.14.0",
+    "fs": "0.0.1-security",
+    "https": "^1.0.0",
+    "ws": "^1.1.1"
+  },
+  "engine": {
+    "node": "*",
+    "npm": "*"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "IP=0.0.0.0 PORT=8091 mocha --timeout 5000 tests/*_test.js"
+  }
+}
