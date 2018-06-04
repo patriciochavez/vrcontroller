@@ -17,7 +17,7 @@ var serverConfig = {
     cert: fs.readFileSync('./server.crt'),
 };
 
-var HTTP_PORT = 8080;
+var HTTP_PORT = 80;
 
 var httpServer = http.createServer(app).listen(HTTP_PORT);
 var ws1 = new WebSocket.Server({noServer: true});
