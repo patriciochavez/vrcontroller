@@ -2,7 +2,9 @@ var path = require('path');
 var express = require("express");
 var bodyParser = require("body-parser");
 var app = express();
-var WebSocketServer = require('ws').Server;
+var url = require('url');
+//var WebSocketServer = require('ws').Server;
+const WebSocket = require('ws');
 var sesion_estado = "NULA";
 var timer;
 var html_player_controller = new Object();
@@ -15,70 +17,72 @@ var serverConfig = {
     cert: fs.readFileSync('./server.crt'),
 };
 
-var HTTP_PORT = 80;
+var HTTP_PORT = 8080;
 
-//var httpsServer = https.createServer(serverConfig, app).listen(HTTPS_PORT);
 var httpServer = http.createServer(app).listen(HTTP_PORT);
-var socket = new WebSocketServer({server: httpServer});
+var ws1 = new WebSocket.Server({noServer: true});
+var ws2 = new WebSocket.Server({noServer: true});
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
         extended: true
         }));
 
-socket.on('connection', function(ws) {
-    console.log("Nueva conexión");
+ws1.on('connection', function(ws) {
+    console.log("nueva conexión player1");
     ws.on('message', function(message) {
-    socket.broadcast(message);
+    ws1.broadcast(message);
     console.log(message);
     html_player_controller = JSON.parse(message);
-    if(html_player_controller.sesion == "NUEVA_SESION") {
-    sesion_estado = "ACTIVA";
-    socket.broadcast(JSON.stringify(html_player_controller));
-    console.log(JSON.stringify(html_player_controller));
-    timer = setTimeout(function(){ 
-        sesion_estado = "NULA"; 
-                html_player_controller.sesion= "FINALIZAR_SESION";
-        console.log(JSON.stringify(html_player_controller));
-                socket.broadcast(JSON.stringify(html_player_controller));
-        }, 30000);  
-    } else if(sesion_estado == "ACTIVA"){
-    clearTimeout(timer);
-        timer = setTimeout(function(){
-                sesion_estado = "NULA";
-        html_player_controller.sesion = "FINALIZAR_SESION";
-        console.log(JSON.stringify(html_player_controller));
-        socket.broadcast(JSON.stringify(html_player_controller));  
-                }, 30000);
-        console.log(JSON.parse(message));
-    var objeto = new Object();
-    objeto = JSON.parse(message);
-    socket.broadcast(JSON.stringify(objeto));
-        //wss.broadcast(message);
-    } 
     });
 });
 
-socket.broadcast = function(data) {
+ws1.broadcast = function(data) {
     for(var i in this.clients) {
         this.clients[i].send(data);
     }
 };
 
-/*socket.broadcast = function broadcast(data) {
-  wss.clients.forEach(function each(client) {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(data);
-	console.log("enviando data a un cliente", data);
+ws2.on('connection', function(ws) {
+    console.log("nueva conexión player2");
+    ws.on('message', function(message) {
+    ws2.broadcast(message);
+    console.log(message);
+    html_player_controller = JSON.parse(message);
+    });
+});
+
+ws2.broadcast = function(data) {
+    for(var i in this.clients) {
+        this.clients[i].send(data);
     }
-  });
-};*/
+};
+
+
+httpServer.on('upgrade', function upgrade(request, socket, head) {
+  const pathname = url.parse(request.url).pathname;
+
+  if (pathname === '/player1') {
+    ws1.handleUpgrade(request, socket, head, function done(ws) {
+      ws1.emit('connection', ws, request);
+    });
+  } else if (pathname === '/player2') {
+    ws2.handleUpgrade(request, socket, head, function done(ws) {
+      ws2.emit('connection', ws, request);
+    });
+  } else {
+    socket.destroy();
+  }
+});
 
 app.get(/^(.+)$/, function(req, res){ 
     switch(req.params[0]) {
         case '/aceleracion':
             res.send(JSON.stringify(aceleracion));
             break;
-    default: res.sendFile( __dirname + req.params[0]); 
+        case '/player2':
+	    res.sendFile( __dirname + '/html/player2.html');
+            break;
+    default: res.sendFile( __dirname + '/html/player1.html'); 
     }
  });
